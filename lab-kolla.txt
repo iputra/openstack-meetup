@@ -1,0 +1,100 @@
+kolla-controller : 10.10.10.100
+kolla-compute1   : 10.10.10.11
+kolla-compute2   : 10.10.10.12
+
+# All Node
+vi /etc/hosts
+```
+10.10.10.100 kolla-controller
+10.10.10.11 kolla-compute1
+10.10.10.12 kolla-compute2
+```
+
+cd /etc/sysconfig/network-scripts
+vi ifcfg-eth0
+```
+MTU=1600
+```
+
+cp ifcfg-eth0 ifcfg-eth1
+vi ifcfg-eth1
+```
+TYPE=Ethernet
+BOOTPROTO=none
+NAME=eth1
+DEVICE=eth1
+ONBOOT=yes
+MTU=1600
+```
+
+systemctl restart network
+
+ping -c3 kolla-controller
+ping -c3 kolla-compute1
+ping -c3 kolla-compute2
+
+ssh-keygen
+for i in kolla-controller kolla-compute1 kolla-compute2 ; 
+do 
+  ssh-copy-id -i ~/.ssh/id_rsa.pub root@$i ; 
+done
+
+# Controller Node
+yum -y update
+yum -y install epel-release
+yum -y install python-pip python-devel libffi-devel gcc openssl-devel libselinux-python
+pip install -U pip
+pip install ansible==
+pip install ansible==2.7.16
+pip install PyMySQL
+pip install kolla-ansible==
+pip install kolla-ansible==9.0.1
+pip install python-openstackclient --ignore-installed ipaddress
+
+
+cp -r /usr/share/kolla-ansible/etc_examples/kolla /etc/
+cp /usr/share/kolla-ansible/ansible/inventory/multinode .
+kolla-genpwd
+
+vi multinode
+```
+[control]
+kolla-controller
+
+[network]
+kolla-controller
+
+[compute]
+kolla-compute[1:2]
+
+[monitoring]
+kolla-controller
+
+[storage]
+kolla-controller
+
+
+
+vi /etc/kolla/globals.yml
+kolla_base_distro: "centos"
+kolla_install_type: "binary"
+openstack_release: "train"
+kolla_internal_vip_address: "10.10.10.200"
+network_interface: "eth0"
+neutron_external_interface: "eth1"
+enable_openstack_core: "yes"
+enable_haproxy: "no"
+neutron_plugin_agent: "openvswitch"
+enable_neutron_provider_networks: "yes"
+nova_compute_virt_type: "qemu"
+
+
+ansible all -i multinode -m ping
+kolla-ansible -i multinode bootstrap-servers;
+kolla-ansible -i multinode prechecks;
+kolla-ansible -i multinode deploy
+
+
+kolla-ansible post-deploy
+source /etc/kolla/admin-openrc.sh
+openstack hypervisor list
