@@ -1,5 +1,5 @@
-# openstack-meetup
+# OpenStack Meetup #8
 
-Openstack Meetup #8 - https://www.meetup.com/Indonesia-OpenStack-User-Group/events/268827841/
+OpenStack Meetup #8 - https://www.meetup.com/Indonesia-OpenStack-User-Group/events/268827841/
 
 ![](lab-topology.png)
